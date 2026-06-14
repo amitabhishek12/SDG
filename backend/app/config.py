@@ -14,9 +14,12 @@ class Settings(BaseSettings):
     # Number of rows returned by the preview step.
     preview_rows: int = 10
 
-    # OpenAI configuration. When the key is absent, LLM-backed features
-    # (ERP schema inference, contextual data fallback) are disabled.
+    # OpenAI-compatible LLM configuration. When the key is absent, LLM-backed
+    # features (ERP schema inference, contextual data fallback) are disabled.
+    # Set openai_base_url to point at an OpenAI-compatible provider such as
+    # OpenRouter (https://openrouter.ai/api/v1); leave it unset for OpenAI.
     openai_api_key: str | None = None
+    openai_base_url: str | None = None
     openai_model: str = "gpt-4o-mini"
 
     @property

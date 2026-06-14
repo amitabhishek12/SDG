@@ -26,7 +26,12 @@ def _client():
     # Imported lazily so the app runs without the SDK installed in dev.
     from openai import OpenAI
 
-    return OpenAI(api_key=settings.openai_api_key)
+    # base_url is passed only when set, so the same client works against
+    # OpenAI (default) or an OpenAI-compatible provider like OpenRouter.
+    return OpenAI(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url or None,
+    )
 
 
 def _complete(prompt: str, max_tokens: int) -> str:
