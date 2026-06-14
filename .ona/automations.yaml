@@ -1,0 +1,44 @@
+tasks:
+  backendSetup:
+    name: Backend setup
+    description: Create the Python virtualenv and install backend dependencies.
+    triggeredBy:
+      - postEnvironmentStart
+    command: |
+      cd backend
+      python -m venv .venv
+      . .venv/bin/activate
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+  frontendSetup:
+    name: Frontend setup
+    description: Install frontend dependencies.
+    triggeredBy:
+      - postEnvironmentStart
+    command: |
+      cd frontend
+      npm install
+
+services:
+  backend:
+    name: Backend API
+    description: FastAPI server for the synthetic data generator.
+    triggeredBy:
+      - postDevcontainerStart
+    commands:
+      start: |
+        cd backend
+        . .venv/bin/activate
+        uvicorn app.main:app --host 0.0.0.0 --port 8000
+      ready: curl -sf http://localhost:8000/api/health
+
+  frontend:
+    name: Frontend
+    description: React/Vite dev server (proxies /api to the backend).
+    triggeredBy:
+      - postDevcontainerStart
+    commands:
+      start: |
+        cd frontend
+        npm run dev

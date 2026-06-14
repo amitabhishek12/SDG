@@ -1,0 +1,255 @@
+:root {
+  --bg: #0f172a;
+  --panel: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --warn-bg: #fef3c7;
+  --warn-ink: #92400e;
+  --err-bg: #fee2e2;
+  --err-ink: #991b1b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.header h1 {
+  color: #f8fafc;
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+.subtitle {
+  color: #cbd5e1;
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+
+.banner {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  margin: 12px 0;
+}
+.banner.warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.banner.error {
+  background: var(--err-bg);
+  color: var(--err-ink);
+}
+
+.stepper {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.stepper li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  flex: 1;
+  min-width: 110px;
+}
+.stepper .dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #334155;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+.stepper li.active .dot {
+  background: var(--brand);
+  color: #fff;
+}
+.stepper li.done .dot {
+  background: #16a34a;
+  color: #fff;
+}
+.stepper li.active .label {
+  color: #f8fafc;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+input[type="number"],
+input[type="text"],
+input:not([type]),
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+label input,
+label select {
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+}
+button.primary {
+  background: var(--brand);
+  color: #fff;
+}
+button.primary:hover {
+  background: var(--brand-dark);
+}
+button.primary:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+button.ghost {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+.choice {
+  text-align: left;
+  background: #f8fafc;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 400;
+}
+.choice strong {
+  font-size: 15px;
+}
+.choice span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.choice.selected {
+  border-color: var(--brand);
+  background: #eff6ff;
+}
+
+.subpanel {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.upload {
+  margin: 12px 0;
+}
+.upload a {
+  color: var(--brand);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 8px 0;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th,
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--muted);
+}
+td.center,
+.center {
+  text-align: center;
+}
+td.muted {
+  color: var(--muted);
+}
+.custom-form table input,
+.custom-form table select {
+  padding: 6px 8px;
+}
+
+@media (max-width: 640px) {
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+}
