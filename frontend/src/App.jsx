@@ -13,11 +13,15 @@ import SchemaTable from "./components/SchemaTable.jsx";
 import CustomForm from "./components/CustomForm.jsx";
 import PreviewTable from "./components/PreviewTable.jsx";
 import Stepper from "./components/Stepper.jsx";
+import LandingPage from "./components/LandingPage.jsx";
+import TableSearch from "./components/TableSearch.jsx";
+import FieldPicker from "./components/FieldPicker.jsx";
 
 const STEPS = ["Count", "Source", "Schema", "Preview", "Export"];
 
 export default function App() {
   const [config, setConfig] = useState(null);
+  const [view, setView] = useState("landing"); // "landing" | "app"
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,7 +30,11 @@ export default function App() {
   const [source, setSource] = useState(null); // "erp" | "custom"
   const [erps, setErps] = useState([]);
   const [erpId, setErpId] = useState("");
-  const [table, setTable] = useState("");
+
+  // ERP flow: "select" (choose ERP + search table) | "pick" (choose fields)
+  const [erpStage, setErpStage] = useState("select");
+  const [tableInfo, setTableInfo] = useState(null); // resolved schema response
+
   const [customMethod, setCustomMethod] = useState(null); // "upload" | "form"
   const [fieldCount, setFieldCount] = useState(4);
 
@@ -51,18 +59,35 @@ export default function App() {
     setStep(n);
   };
 
-  const fetchErpSchema = async () => {
+  const startApp = () => {
+    setView("app");
+    setStep(0);
+  };
+
+  // ERP: a table name was resolved (exact, suggestion, or LLM) — fetch its
+  // fields and move to the field picker.
+  const resolveTable = async (tableName) => {
     setBusy(true);
     setError("");
     try {
-      const s = await getErpSchema(erpId, table);
-      setSchema(s);
-      go(2);
+      const res = await getErpSchema(erpId, tableName);
+      setTableInfo(res);
+      setErpStage("pick");
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
     }
+  };
+
+  // ERP: the user confirmed a subset of fields — build the schema and review.
+  const confirmFields = (chosenFields) => {
+    setSchema({
+      source: tableInfo.erp_id,
+      table: tableInfo.table,
+      fields: chosenFields,
+    });
+    go(2);
   };
 
   const handleUpload = async (file) => {
@@ -115,18 +140,28 @@ export default function App() {
   const dataTypes = config?.data_types ?? [];
   const exportFormats = config?.export_formats ?? ["csv", "xlsx", "pdf", "parquet"];
 
+  if (view === "landing") {
+    return (
+      <LandingPage onStart={startApp} llmEnabled={!!config?.llm_enabled} />
+    );
+  }
+
   return (
     <div className="app">
       <header className="header">
+        <button className="link-back" onClick={() => setView("landing")}>
+          ← Home
+        </button>
         <h1>Synthetic Data Generator</h1>
         <p className="subtitle">
           Define a schema from a standard ERP table or a custom dataset, preview
           a sample, then generate and export records.
         </p>
         {config && !config.llm_enabled && (
-          <div className="banner warn">
-            LLM features are disabled (no OPENAI_API_KEY). ERP schema inference
-            is unavailable; custom datasets use Faker generation.
+          <div className="banner info">
+            Running offline. ERP schemas come from the built-in catalog; custom
+            datasets use Faker generation. AI schema inference is optional and
+            currently disabled.
           </div>
         )}
       </header>
@@ -165,10 +200,13 @@ export default function App() {
             <div className="choice-grid">
               <button
                 className={`choice ${source === "erp" ? "selected" : ""}`}
-                onClick={() => setSource("erp")}
+                onClick={() => {
+                  setSource("erp");
+                  setErpStage("select");
+                }}
               >
                 <strong>Standard ERP</strong>
-                <span>SAP / Oracle table (schema inferred via OpenAI)</span>
+                <span>SAP / Oracle table from the built-in catalog</span>
               </button>
               <button
                 className={`choice ${source === "custom" ? "selected" : ""}`}
@@ -179,7 +217,7 @@ export default function App() {
               </button>
             </div>
 
-            {source === "erp" && (
+            {source === "erp" && erpStage === "select" && (
               <div className="subpanel">
                 <label>
                   ERP
@@ -187,7 +225,7 @@ export default function App() {
                     value={erpId}
                     onChange={(e) => {
                       setErpId(e.target.value);
-                      setTable("");
+                      setTableInfo(null);
                     }}
                   >
                     <option value="">Select ERP…</option>
@@ -198,35 +236,54 @@ export default function App() {
                     ))}
                   </select>
                 </label>
-                <label>
-                  Table
-                  <select
-                    value={table}
-                    onChange={(e) => setTable(e.target.value)}
-                    disabled={!erpId}
-                  >
-                    <option value="">Select table…</option>
-                    {erps
-                      .find((e) => e.erp_id === erpId)
-                      ?.tables.map((t) => (
-                        <option key={t.table} value={t.table}>
-                          {t.table} — {t.description}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+
+                {erpId && (
+                  <TableSearch erpId={erpId} onResolved={resolveTable} />
+                )}
+
+                {erpId && (
+                  <details className="browse">
+                    <summary>Or browse all tables</summary>
+                    <div className="browse-list">
+                      {erps
+                        .find((e) => e.erp_id === erpId)
+                        ?.tables.map((t) => (
+                          <button
+                            key={t.table}
+                            className="browse-item"
+                            onClick={() => resolveTable(t.table)}
+                          >
+                            <strong>{t.table}</strong>
+                            <span>{t.description}</span>
+                          </button>
+                        ))}
+                    </div>
+                  </details>
+                )}
+
+                {busy && <p className="hint">Loading table…</p>}
+
                 <div className="actions">
                   <button className="ghost" onClick={() => go(0)}>
                     Back
                   </button>
-                  <button
-                    className="primary"
-                    disabled={!erpId || !table || busy}
-                    onClick={fetchErpSchema}
-                  >
-                    {busy ? "Inferring…" : "Get schema"}
-                  </button>
                 </div>
+              </div>
+            )}
+
+            {source === "erp" && erpStage === "pick" && tableInfo && (
+              <div className="subpanel">
+                <FieldPicker
+                  table={tableInfo.table}
+                  description={tableInfo.description}
+                  source={tableInfo.source}
+                  fields={tableInfo.fields}
+                  onConfirm={confirmFields}
+                  onBack={() => {
+                    setErpStage("select");
+                    setTableInfo(null);
+                  }}
+                />
               </div>
             )}
 
@@ -299,7 +356,8 @@ export default function App() {
             <h2>Review schema</h2>
             {schema.table && (
               <p className="hint">
-                {schema.source.toUpperCase()} · {schema.table}
+                {schema.source.toUpperCase()} · {schema.table} ·{" "}
+                {schema.fields.length} fields
               </p>
             )}
             <SchemaTable schema={schema} />

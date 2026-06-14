@@ -13,7 +13,9 @@ in multiple formats.
 
 - Let a user specify how many records to generate.
 - Support two schema sources: a standard ERP table, or a custom dataset.
-- For ERP, infer table metadata (fields, keys, data type, length) via an LLM.
+- For ERP, serve table metadata (fields, keys, data type, length) from an
+  offline catalog, with optional LLM inference for non-catalogued tables.
+- Let a user search ERP tables by name and pick which fields to include.
 - For custom, accept the schema via Excel/CSV upload or an in-app form.
 - Always show a 10-row preview and require user consent before full generation.
 - Export generated data as Excel, CSV, PDF, or Parquet.
@@ -31,10 +33,10 @@ in multiple formats.
 |---|---|
 | Frontend | React (SPA) |
 | Backend | Python FastAPI |
-| ERP schema metadata | LLM-generated (OpenAI API) |
-| Synthetic data engine | Faker (primary) + LLM fallback for contextual fields |
-| LLM provider | OpenAI via `OPENAI_API_KEY` env var |
-| Prebuilt ERPs | SAP + Oracle, a few sample tables each |
+| ERP schema metadata | Offline catalog (primary) + optional OpenAI inference |
+| Synthetic data engine | Faker (primary) + optional LLM fallback for contextual fields |
+| LLM provider | OpenAI via `OPENAI_API_KEY` (optional; supports `OPENAI_BASE_URL`) |
+| Prebuilt ERPs | SAP (15 tables) + Oracle, with fuzzy name search |
 | Field data types | ERP-style types (CHAR, NUMC, DEC, DATS, etc.) mapped internally |
 | Upload validation | Strict 4-column schema + downloadable template |
 | Record cap | Configurable cap (default 100,000) |
@@ -45,10 +47,14 @@ in multiple formats.
 1. **Record count** — User enters the desired number of records.
 2. **Source selection** — User chooses an ERP (SAP / Oracle) or "Custom Dataset".
 3. **ERP path**
-   - User selects an ERP and a table.
-   - Backend asks the LLM for the table's schema: field name, key flag,
-     ERP data type, length, and any other relevant attributes.
-   - The resolved schema is displayed for review.
+   - User selects an ERP, then searches for a table by name. An exact match
+     resolves directly; otherwise up to five close matches are suggested. The
+     full catalog can also be browsed.
+   - The backend returns the table's full field list from the offline catalog
+     (field name, key flag, ERP data type, length, note). Non-catalogued tables
+     fall back to LLM inference when a key is configured.
+   - The user picks which fields to include (key fields preselected); the
+     resulting schema is displayed for review.
 4. **Custom path**
    - User is asked for the number of fields.
    - User chooses one of two input methods:

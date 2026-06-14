@@ -26,12 +26,19 @@ export async function getErps() {
   return data.erps;
 }
 
+export async function searchTables(erpId, q) {
+  const url = `${BASE}/api/erp-tables/search?erp_id=${encodeURIComponent(
+    erpId
+  )}&q=${encodeURIComponent(q)}`;
+  return jsonOrThrow(await fetch(url));
+}
+
+// Returns the full table schema: { erp_id, table, description, source, fields }
 export async function getErpSchema(erpId, table) {
   const url = `${BASE}/api/erp-schema?erp_id=${encodeURIComponent(
     erpId
   )}&table=${encodeURIComponent(table)}`;
-  const data = await jsonOrThrow(await fetch(url));
-  return data.schema;
+  return jsonOrThrow(await fetch(url));
 }
 
 export async function uploadSchema(file) {

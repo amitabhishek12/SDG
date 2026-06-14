@@ -51,6 +51,10 @@ class Schema(BaseModel):
         return v
 
 
+class ErpField(Field_):
+    """A field sourced from the ERP catalog. Same shape as a schema field."""
+
+
 class ErpTableInfo(BaseModel):
     erp_id: str
     erp_name: str
@@ -62,6 +66,29 @@ class ErpInfo(BaseModel):
     erp_id: str
     erp_name: str
     tables: list[ErpTableInfo]
+
+
+class TableMatch(BaseModel):
+    table: str
+    description: str
+
+
+class TableSearchResponse(BaseModel):
+    # status: "exact" | "suggestions" | "none"
+    status: str
+    table: str | None = None
+    description: str | None = None
+    matches: list[TableMatch] = []
+    # "catalog" or "llm" — where an exact resolution would come from
+    source: str = "catalog"
+
+
+class TableSchemaResponse(BaseModel):
+    erp_id: str
+    table: str
+    description: str | None = None
+    source: str  # "catalog" or "llm"
+    fields: list[Field_]
 
 
 class PreviewRequest(BaseModel):

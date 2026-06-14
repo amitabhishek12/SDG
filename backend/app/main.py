@@ -12,6 +12,8 @@ from .models import (
     PreviewRequest,
     PreviewResponse,
     Schema,
+    TableSchemaResponse,
+    TableSearchResponse,
 )
 
 app = FastAPI(title="Synthetic Data Generator", version="1.0.0")
@@ -52,27 +54,70 @@ def list_erps() -> dict:
     return {"erps": [e.model_dump() for e in erp_catalog.list_erps()]}
 
 
-@app.get("/api/erp-schema")
-def erp_schema(erp_id: str, table: str) -> dict:
-    description = erp_catalog.get_table_description(erp_id, table)
+@app.get("/api/erp-tables/search", response_model=TableSearchResponse)
+def search_tables(erp_id: str, q: str) -> TableSearchResponse:
+    """Resolve a free-text table name against the offline catalog.
+
+    Returns an exact match, up to 5 close suggestions, or a not-found status.
+    When the catalog has no match but the LLM is available, the table can still
+    be resolved via /api/erp-schema (status "none" with source "llm").
+    """
+    if erp_catalog.erp_name(erp_id) is None:
+        raise HTTPException(status_code=404, detail="Unknown ERP")
+
+    result = erp_catalog.search_tables(erp_id, q)
+    # If nothing matched but the LLM is available, signal that the exact query
+    # can still be attempted via the schema endpoint.
+    if result["status"] == "none" and llm.llm_available():
+        return TableSearchResponse(status="none", matches=[], source="llm")
+    return TableSearchResponse(**result, source="catalog")
+
+
+@app.get("/api/erp-schema", response_model=TableSchemaResponse)
+def erp_schema(erp_id: str, table: str) -> TableSchemaResponse:
+    """Return a table's full field list.
+
+    Catalog is the primary source (offline). If the table is not catalogued,
+    fall back to LLM inference when a key is configured.
+    """
     name = erp_catalog.erp_name(erp_id)
-    if description is None or name is None:
-        raise HTTPException(status_code=404, detail="Unknown ERP or table")
+    if name is None:
+        raise HTTPException(status_code=404, detail="Unknown ERP")
+
+    # Primary: offline catalog.
+    fields = erp_catalog.get_catalog_fields(erp_id, table)
+    if fields is not None:
+        return TableSchemaResponse(
+            erp_id=erp_id,
+            table=table.upper(),
+            description=erp_catalog.get_table_description(erp_id, table),
+            source="catalog",
+            fields=fields,
+        )
+
+    # Fallback: LLM inference for tables not in the catalog.
     if not llm.llm_available():
         raise HTTPException(
-            status_code=503,
+            status_code=404,
             detail=(
-                "ERP schema inference requires an OPENAI_API_KEY. "
-                "Use Custom Dataset instead, or configure the key."
+                f"Table '{table}' is not in the catalog. Configure an "
+                "OPENAI_API_KEY to infer schemas for arbitrary tables, or "
+                "pick a catalogued table."
             ),
         )
     try:
-        schema = llm.infer_erp_schema(erp_id, name, table, description)
+        schema = llm.infer_erp_schema(erp_id, name, table, table)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=502, detail=f"Schema inference failed: {exc}"
         ) from exc
-    return {"schema": schema.model_dump()}
+    return TableSchemaResponse(
+        erp_id=erp_id,
+        table=table.upper(),
+        description=None,
+        source="llm",
+        fields=schema.fields,
+    )
 
 
 @app.post("/api/upload-schema")
