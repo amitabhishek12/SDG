@@ -77,46 +77,50 @@ def search_tables(erp_id: str, q: str) -> TableSearchResponse:
 def erp_schema(erp_id: str, table: str) -> TableSchemaResponse:
     """Return a table's full field list.
 
-    Catalog is the primary source (offline). If the table is not catalogued,
-    fall back to LLM inference when a key is configured.
+    LLM inference is attempted first when a key is configured. If the LLM is
+    unavailable or fails, fall back to the offline catalog. (With the LLM
+    disabled the catalog is always used, so the app works fully offline.)
     """
     name = erp_catalog.erp_name(erp_id)
     if name is None:
         raise HTTPException(status_code=404, detail="Unknown ERP")
 
-    # Primary: offline catalog.
-    fields = erp_catalog.get_catalog_fields(erp_id, table)
-    if fields is not None:
+    catalog_fields = erp_catalog.get_catalog_fields(erp_id, table)
+    catalog_desc = erp_catalog.get_table_description(erp_id, table)
+
+    # Primary: LLM inference (when configured).
+    if llm.llm_available():
+        try:
+            schema = llm.infer_erp_schema(
+                erp_id, name, table, catalog_desc or table
+            )
+            return TableSchemaResponse(
+                erp_id=erp_id,
+                table=table.upper(),
+                description=catalog_desc,
+                source="llm",
+                fields=schema.fields,
+            )
+        except Exception:  # noqa: BLE001 - fall back to the catalog below
+            pass
+
+    # Fallback: offline catalog.
+    if catalog_fields is not None:
         return TableSchemaResponse(
             erp_id=erp_id,
             table=table.upper(),
-            description=erp_catalog.get_table_description(erp_id, table),
+            description=catalog_desc,
             source="catalog",
-            fields=fields,
+            fields=catalog_fields,
         )
 
-    # Fallback: LLM inference for tables not in the catalog.
-    if not llm.llm_available():
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"Table '{table}' is not in the catalog. Configure an "
-                "OPENAI_API_KEY to infer schemas for arbitrary tables, or "
-                "pick a catalogued table."
-            ),
-        )
-    try:
-        schema = llm.infer_erp_schema(erp_id, name, table, table)
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(
-            status_code=502, detail=f"Schema inference failed: {exc}"
-        ) from exc
-    return TableSchemaResponse(
-        erp_id=erp_id,
-        table=table.upper(),
-        description=None,
-        source="llm",
-        fields=schema.fields,
+    raise HTTPException(
+        status_code=404,
+        detail=(
+            f"Table '{table}' is not in the catalog. Configure an "
+            "OPENAI_API_KEY to infer schemas for arbitrary tables, or "
+            "pick a catalogued table."
+        ),
     )
 
 

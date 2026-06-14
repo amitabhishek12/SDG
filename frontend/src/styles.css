@@ -516,8 +516,15 @@ button.primary.lg {
 .field-list {
   border: 1px solid var(--line);
   border-radius: 10px;
-  overflow: hidden;
+  overflow-y: auto;
+  /* Show roughly 9 rows, then scroll within the list for long tables. */
+  max-height: 360px;
   margin: 8px 0;
+}
+.field-list .field-row.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .field-row {
   display: grid;
