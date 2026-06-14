@@ -47,6 +47,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
+Note: the backend environment in this workspace uses Python 3.14.5, so the
+dependency pins in `backend/requirements.txt` are set to versions that install
+cleanly on that interpreter. If you create a new environment, use Python 3.14+
+or reuse the existing `backend/.venv` to avoid package build errors on Windows.
+
 Frontend (in another terminal):
 
 ```bash

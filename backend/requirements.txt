@@ -1,11 +1,11 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-pydantic==2.10.4
-pydantic-settings==2.7.1
+fastapi==0.137.0
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+pydantic-settings==2.14.1
 python-multipart==0.0.20
 faker==33.1.0
-pandas==2.2.3
+pandas==3.0.3
 openpyxl==3.1.5
-pyarrow==18.1.0
+pyarrow==24.0.0
 reportlab==4.2.5
 openai==1.59.6
